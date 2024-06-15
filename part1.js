@@ -62,31 +62,59 @@ const reset = () => {
  gameLoop(); 
 }
 
-const gameLoop = () => {
-  do {
-    let playerGuess = rl.question('Enter a location to strike ie "A1" : ' , 
+/*
+  Refactor gameLoop() so that it follows the single responsibility principle
+    1.Get the player's guess 
+    2.Check if the guess is valid and not a duplicate
+    3.Process the guess (convert and attack). 
+    4.Handle end-of-game logic 
+    5.Prompt for a new game. 
+*/
+
+const getPlayerGuess = () => {
+  return rl.question('Enter a location to strike ie "A1" : ' , 
     {limit:validPoint, limitMessage: 'Not at valid point on the map, please try again. '}); 
-    
-    let guess = playerGuess.toUpperCase(); 
+}
 
-    if(prevLocations.includes(guess)) {
-      console.log('You have already picked this location. Miss!')
-    }else {
-      prevLocations.push(guess); 
+const isDuplicate = (guess, prevLocations) => {
+  if(prevLocations.includes(guess)){
+    console.log('You have already picked this location. Miss!')
+    return true; 
+  } else {
+    return false; 
+  }
+}
 
-      let x = rowStr.indexOf(guess.slice(0,1)); 
-      let y = guess.slice(1,2) - 1; 
+const handleGuess = (guess, prevLocations) => {
+  prevLocations.push(guess);
 
-      attack(x, y)
-    }
-  } while (enemyShips > 0); 
-  
-  console.log('You sunk all the ships!'); 
+  let x = rowStr.indexOf(guess.slice(0,1)); 
+  let y = guess.slice(1,2) -1; 
+
+  attack (x,y);
+}
+
+const playAgainPrompt = () => {
   if (rl.keyInYNStrict('Would you like to play again? : ')){
     reset(); 
   } else {
     console.log('Thank you for playing.')
   }
+}
+
+const gameLoop = () => {
+  do {
+    let playerGuess = getPlayerGuess()
+    
+    let guess = playerGuess.toUpperCase(); 
+
+    if(!isDuplicate(guess, prevLocations)) {
+      handleGuess(guess, prevLocations)
+    }
+  } while (enemyShips > 0); 
+  
+  console.log('You sunk all the ships!'); 
+  playAgainPrompt(); 
 }
 
 const gameInit = () => {

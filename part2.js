@@ -6,11 +6,9 @@ let prevLocations = [];
 let numShips = [2, 3, 3, 4, 5];
 let enemyShips = [];
 let validPoints;
-let minMax = new RegExp(/^(?:[3-9]|10)$/)
 let rowStr = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
  
-const createMap = (size) => {
-
+const createMap = (size, grid) => {
   for (let x = 0 ; x < size ; x++) {
     grid[x] = [];
     for  (let y = 0 ; y < size ; y++) {
@@ -20,14 +18,23 @@ const createMap = (size) => {
   return grid; 
 }
 
-const getPoints = (length) => {
-  let x, y, direction; 
-  do {
-    x = Math.floor(Math.random() * gridSize); 
-    y = Math.floor(Math.random() * gridSize); 
-    direction = Math.random() < 0.5 ? 'horizontal' : 'vertical'
-  } while (!isValid(x, y, direction, length)); 
- 
+//refactor getPoints to follow SRP 
+/*
+  Currently, getPoints are doing multiple things
+    1. Generates random coordinates and direction for placing ships
+    2. Validates the generated coordinates and direction. 
+    3. Places the ship on the grid 
+    4. It creates a ship object and adds it to the 'enemyShips' array. 
+*/
+const getRandomCoordinates = () => {
+  const x = Math.floor(Math.random() * gridSize); 
+  const y = Math.floor(Math.random() * gridSize);
+  const direction = Math.random() < 0.5 ? 'horizontal' : 'vertical' 
+
+  return {x,y,direction}; 
+}
+
+const placeShips = (x, y, direction, length) => {
   for (let i = 0 ; i < length ; i++){
     if (direction === 'horizontal') {
       grid[x][y + i] = 'S'; 
@@ -35,17 +42,28 @@ const getPoints = (length) => {
       grid[x + i][y] = 'S'
     }
   }
+}
 
+const makeShip = (x, y , direction, length) => {
   const ship = {
     startX: x, 
     startY: y, 
     length: length, 
-    direction: direction, 
-    hitSections: 0, 
+    hitSection: 0,  
+    direction: direction,  
     isSunk: false, 
   }
 
   enemyShips.push(ship)
+}
+
+const getPoints = (length) => {
+  let coordinates; 
+  do {
+    coordinates = getRandomCoordinates();
+  } while (!isValid(coordinates.x, coordinates.y, coordinates.direction, length)); 
+  placeShips(coordinates.x, coordinates.y, coordinates.direction, length); 
+  makeShip(coordinates.x, coordinates.y, coordinates.direction, length)
 }
 
 const isValid = (x, y, direction, length) => {
@@ -64,29 +82,58 @@ const isValid = (x, y, direction, length) => {
   return true; 
 }
 
-const checkShip = (x,y) => {
-  for(const ship of enemyShips) {
-   if(
-    (ship.direction === 'horizontal' && x === ship.startX && y < ship.startY + ship.length) ||
-    (ship.direction === 'vertical' && y === ship.startY && x < ship.startX + ship.length)
-   ) {
-    ship.hitSections += 1
-    if (ship.hitSections === ship.length) {
-      ship.isSunk = true; 
-      console.log(`You sunk a ${ship.length}-unit ship !`)
-      sunkShips ++
-    }
-   }
-  }
-}
-
-const attack = (x,y) => {
+const isHit = (x,y) => {
   if(grid[x][y] === 'S') {
     return true; 
   } else {
     return false; 
   }
 }
+
+
+/* 
+  checkShip() doesn't follow SRP this function is processing a couple of things
+    1.check if the coordinates hit a ship.
+    2.updates the hit section of the ship. 
+    3.checks if the ship is sunk. 
+    4.logs that the ship is sunk.
+    5.updates the sunkShip counter. 
+*/
+
+const isShipHit = (x,y,ship) => {
+  return(
+    (ship.direction === 'horizontal' && x === ship.startX && y < ship.startY + ship.length) ||
+    (ship.direction === 'vertical' && y === ship.startY && x < ship.startX + ship.length)
+  );
+}
+
+const updateHitSection = (ship) => {
+  ship.hitSection += 1; 
+}
+
+const isSunk = (ship) => {
+  return ship.hitSection === ship.length
+}
+
+const handleSunkShip = (ship) => {
+  ship.isSunk = true; 
+  console.log(`You sunk a ${ship.length}-unit ship !`)
+  sunkShips ++
+}
+
+const checkShip = (x,y) => {
+  for(const ship of enemyShips) {
+   if(
+      isShipHit(x, y, ship)
+   ) {
+    updateHitSection(ship)
+    if (isSunk(ship)) {
+      handleSunkShip(ship); 
+    }
+   }
+  }
+}
+
  
 const reset = () => {
   grid = [];
@@ -98,12 +145,27 @@ const reset = () => {
   gameLoop(); 
 }
 
+
+/*
+  Refactor gameSetUp to follow SRP 
+  gameSetup is responsible for a couple of things
+    1. get the grid size from the player. 
+    2. filter the number of ships based on the grid size
+    3. create the ships. 
+*/
+
+const getGridSize = () => {
+  let minMax = new RegExp(/^(?:[3-9]|10)$/)
+  return rl.question('Enter desired grid Size: ', {limit:minMax, limitMessage: 'Grid must be larger than 3 and smaller than 10'})
+}
 const gameSetup = () => {
-  let filteredShips; 
-  gridSize = rl.question('Enter desired grid Size: ', {limit:minMax, limitMessage: 'Grid must be larger than 3 and smaller than 10'})
-  createMap(gridSize); 
   
-  validPoints = new RegExp(`^(?:[a-jA-J]([1-${gridSize}]|10))$`); 
+  let filteredShips; 
+  gridSize = getGridSize(); 
+
+  createMap(gridSize, grid); 
+  
+  validPoints = new RegExp(`^(?:[a-jA-J]([1-${gridSize > 9 ? 9 : gridSize}]|10))$`); 
 
   switch (gridSize) {
     case '3': 
@@ -141,7 +203,7 @@ const gameLoop = () => {
       let x = rowStr.indexOf(guess.slice(0,1)); 
       let y = guess.slice(1) -1; 
 
-      if(attack(x,y)){
+      if(isHit(x,y)){
         console.log('Hit!')
         grid[x][y] = 'X'
         checkShip(x,y); 

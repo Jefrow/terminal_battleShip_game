@@ -1,16 +1,21 @@
 let rl = require('readline-sync'); 
 let myGrid = [];   
+let pcGrid = []; 
 let gridSize;
-let sunkShips = 0; 
-let prevLocations = []; 
+let mySunkShips = 0; 
+let pcSunkShips = 0; 
+let myPrevLocations = [];
+let pcPrevLocations = []; 
 let numShips = [2, 3, 3, 4, 5];
+let myShips=[]; 
 let enemyShips = []; 
 let validPoints = new RegExp(`^(?:[a-jA-J]([1-${gridSize}]|10))$`); 
-let minMax = (/^(?:[3-9]|10)$/)
 let rowStr = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 let columnHeaders = ['1', '2','3', '4','5','6','7','8','9','10']; 
  
-const createMap = (size) => {
+
+//modify the create map function so that it can make my grid and the opponent's grid. 
+const createMap = (size, grid) => {
   let grid = []; 
   for (let x = 0 ; x < size ; x++) {
     grid[x] = [];
@@ -21,7 +26,8 @@ const createMap = (size) => {
   return grid; 
 }
 
-const getPoints = (length) => {
+//modify the getPoints so that we can specify which ships are accessed 
+const getPoints = (length, ships) => {
   let x, y, direction; 
   do {
     x = Math.floor(Math.random() * gridSize); 
@@ -46,7 +52,7 @@ const getPoints = (length) => {
     isSunk: false, 
   }
 
-  enemyShips.push(ship)
+  ships.push(ship)
 }
 
 const isValid = (x, y, direction, length) => {
@@ -65,7 +71,7 @@ const isValid = (x, y, direction, length) => {
   return true; 
 }
 
-const printGrid = () => {
+const printGrid = (grid) => {
   process.stdout.write('   ')
   for (let i = 0 ; i < gridSize ; i++) {
     process.stdout.write(` ${columnHeaders[i]}  `)
@@ -105,8 +111,9 @@ const gridBorders = () => {
   }
 }
 
-const checkShip = (x,y) => {
-  for(const ship of enemyShips) {
+//refactor this function so that the game can differentiate between player ship and enemy ship. 
+const checkShip = (x,y, currentShips) => {
+  for(const ship of currentShips) {
    if(
     (ship.direction === 'horizontal' && x === ship.startX && y < ship.startY + ship.length) ||
     (ship.direction === 'vertical' && y === ship.startY && x < ship.startX + ship.length)
@@ -121,7 +128,9 @@ const checkShip = (x,y) => {
   }
 }
 
-const attack = (x,y) => {
+
+//rename attack to checkAttack for readability 
+const checkAttack = (x,y) => {
   if(grid[x][y] === 'S') {
     console.log('Hit!')
     grid[x][y] = 'X'
@@ -143,6 +152,7 @@ const reset = () => {
 }
 
 const gameSetup = () => {
+  let minMax = (/^(?:[3-9]|10)$/)
   let filteredShips; 
   gridSize = rl.question('Enter desired grid Size: ', {limit:minMax, limitMessage: 'Grid must be larger than 3 and smaller than 10'})
   createMap(gridSize); 
@@ -168,6 +178,10 @@ const gameSetup = () => {
   filteredShips.forEach(ship => getPoints(ship)); 
 }
 
+/*
+  During the game loop, we would need to refactor the code so that the players can take turns guessing the checking the guess. 
+*/
+
 const gameLoop = () => {
   do{ 
     let playerGuess = rl.question('Enter a location to strike ie: "A1" : ', 
@@ -183,7 +197,7 @@ const gameLoop = () => {
       let x = rowStr.indexOf(guess.slice(0,1)); 
       let y = guess.slice(1) -1; 
 
-      attack(x,y);
+      checkAttack(x,y);
       printGrid();
 
       console.log('\n')
@@ -212,6 +226,51 @@ const gameInit = () => {
 
 gameInit(); 
 
+/*
+  Game set-up logic: 
+   - game will ask player for grid size
+   - gride size will then be used for both player and computer's board. 
+   - game will randomly place player's ship.
+   - game will randomly place computer's ship.
+   - round 1 wil begin. 
+*/
 
-// create 2 grids enemy grid and your own grid. 
+/*
+  Game loop logic
+  1st round: 
+  = PLAYER'S TURN LOGIC =
+    - Player guesses location
+    - game will check if location is a repeat. 
+      (If location is already guessed, game will ask the player to make another guess)
+    - game will then check if the location is a hit or miss
+      (If hit: game will log "hit", if miss: game will log "miss")
+    - game will check if any ship is sunk
+    - game will then keep track of any hits and valid guesses made. 
+    - end player's turn. 
+  = COMPUTER'S TURN LOGIC = 
+    - computer will randomly generate a location 
+    - game will check if the locations is a repeat. 
+      (computer will loop until a non-repeat location is made)
+    - game will check if hit or miss 
+      (If hit: game will log "hit", if miss: game will log "miss")
+    - game will check if any ship is sunk
+    - game will keep track of any hits and valid guesses made. 
+    - computer ends it's turn. 
+  - 
+  - game will print player's board and enemy's board accordingly showing accumulated guesses and ends the round
+*/  
+
+// Create a turn function where  each player and computer will make a guess and game can check the guesses made
+// Create a round functions where the turn turns will take place (after each round iterations, the game should notify the player what the current round is.)
+
+// what do I need to add to this to make it "multi-player"? 
+/*
+  create trackers for each player and computer opp
+    - grid
+    - ship locations
+    - previous locations 
+*/
+
+// create 2 grids: an enemy grid and your own grid.
+// you can create the size of the grid for both you and your opponent.  
 // ships for both will have randomly selected ships. 

@@ -6,7 +6,6 @@ let prevLocations = [];
 let numShips = [2, 3, 3, 4, 5];
 let enemyShips = [];
 let validPoints;
-let minMax = (/^(?:[3-9]|10)$/)
 let rowStr = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 let columnHeaders = ['1', '2','3', '4','5','6','7','8','9','10']; 
  
@@ -139,11 +138,12 @@ const reset = () => {
 }
 
 const gameSetup = () => {
+  let minMax = (/^(?:[3-9]|10)$/)
   let filteredShips; 
   gridSize = rl.question('Enter desired grid Size: ', {limit:minMax, limitMessage: 'Grid must be larger than 3 and smaller than 10'})
   createMap(gridSize); 
  
-  validPoints = new RegExp(`^(?:[a-jA-J]([1-${gridSize}]|10))$`); 
+  validPoints = new RegExp(`^(?:[a-jA-J]([1-${gridSize > 9 ? 9 : gridSize}]|10))$`); 
 
   switch (gridSize) {
     case '3': 
