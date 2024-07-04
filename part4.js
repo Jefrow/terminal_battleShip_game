@@ -1,230 +1,286 @@
-let rl = require('readline-sync'); 
-let myGrid = [];   
-let pcGrid = []; 
+let rl = require('readline-sync');
+let myGrid = [];
+let pcGrid = [];
 let gridSize;
-let mySunkShips = 0; 
-let pcSunkShips = 0; 
+let mySunkShips = 0;
+let pcSunkShips = 0;
 let myPrevLocations = [];
-let pcPrevLocations = []; 
+let pcPrevLocations = [];
 let numShips = [2, 3, 3, 4, 5];
-let myShips=[]; 
-let enemyShips = []; 
-let validPoints = new RegExp(`^(?:[a-jA-J]([1-${gridSize}]|10))$`); 
+let myShips = [];
+let enemyShips = [];
+let validPoints = new RegExp(`^(?:[a-jA-J]([1-${gridSize}]|10))$`);
 let rowStr = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-let columnHeaders = ['1', '2','3', '4','5','6','7','8','9','10']; 
- 
+let columnHeaders = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
-//modify the create map function so that it can make my grid and the opponent's grid. 
+//modify the create map function so that it can make my grid and the opponent's grid.
 const createMap = (size, grid) => {
-  let grid = []; 
-  for (let x = 0 ; x < size ; x++) {
+  let grid = [];
+  for (let x = 0; x < size; x++) {
     grid[x] = [];
-    for  (let y = 0 ; y < size ; y++) {
-      grid[x][y] = ''; 
-    } 
-  }
-  return grid; 
-}
-
-//modify the getPoints so that we can specify which ships are accessed 
-const getPoints = (length, ships) => {
-  let x, y, direction; 
-  do {
-    x = Math.floor(Math.random() * gridSize); 
-    y = Math.floor(Math.random() * gridSize); 
-    direction = Math.random() < 0.5 ? 'horizontal' : 'vertical'
-  } while (!isValid(x, y, direction, length)); 
- 
-  for (let i = 0 ; i < length ; i++){
-    if (direction === 'horizontal') {
-      grid[x][y + i] = 'S'; 
-    } else {
-      grid[x + i][y] = 'S'
+    for (let y = 0; y < size; y++) {
+      grid[x][y] = '';
     }
   }
+  return grid;
+};
 
-  const ship = {
-    startX: x, 
-    startY: y, 
-    length: length, 
-    direction: direction, 
-    hitSections: 0, 
-    isSunk: false, 
+//modify the getPoints so that we can specify which ships are accessed
+const getRandomCoordinates = () => {
+  const x = Math.floor(Math.random() * gridSize);
+  const y = Math.floor(Math.random() * gridSize);
+  const direction = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+
+  return { x, y, direction };
+};
+
+const placeShips = (x, y, direction, length) => {
+  for (let i = 0; i < length; i++) {
+    if (direction === 'horizontal') {
+      grid[x][y + i] = 'S';
+    } else {
+      grid[x + i][y] = 'S';
+    }
   }
+};
 
-  ships.push(ship)
-}
+const makeShip = (x, y, direction, length) => {
+  const ship = {
+    startX: x,
+    startY: y,
+    length: length,
+    direction: direction,
+    hitSections: 0,
+    isSunk: false,
+  };
+
+  enemyShips.push(ship);
+};
+
+const getPoints = (length) => {
+  let coordinates;
+  do {
+    coordinates = getRandomCoordinates();
+  } while (
+    !isValid(coordinates.x, coordinates.y, coordinates.direction, length)
+  );
+  placeShips(coordinates.x, coordinates.y, coordinates.direction, length);
+  makeShip(coordinates.x, coordinates.y, coordinates.direction, length);
+};
 
 const isValid = (x, y, direction, length) => {
   if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) {
-    return false; 
+    return false;
   }
 
-  for (let i = 0 ; i < length ; i++) {
+  for (let i = 0; i < length; i++) {
     if (
-      (direction === 'horizontal' && (y + i >= gridSize || grid[x][y + i] === 'S')) ||
-      (direction === 'vertical' && (x + i >= gridSize || grid[x + i][y] === 'S'))      
+      (direction === 'horizontal' &&
+        (y + i >= gridSize || grid[x][y + i] === 'S')) ||
+      (direction === 'vertical' &&
+        (x + i >= gridSize || grid[x + i][y] === 'S'))
     ) {
-        return false; 
-      }
+      return false;
+    }
   }
-  return true; 
-}
+  return true;
+};
 
+const isHit = () => {
+  if (grid[x][y] === 'S') {
+    return true;
+  }
+  return false;
+};
+
+
+//Function to print the grid to the console.
 const printGrid = (grid) => {
-  process.stdout.write('   ')
-  for (let i = 0 ; i < gridSize ; i++) {
-    process.stdout.write(` ${columnHeaders[i]}  `)
+  process.stdout.write('   ');
+  for (let i = 0; i < gridSize; i++) {
+    process.stdout.write(` ${columnHeaders[i]}  `);
   }
-  gridBorders(); 
+  gridBorders();
 
-  process.stdout.write('\n'); 
-  
-  for (let x = 0 ; x < gridSize ; x++) {
-    process.stdout.write(`${rowStr[x]} |`)
-    for (let y = 0 ; y < gridSize ; y++){
+  process.stdout.write('\n');
+
+  for (let x = 0; x < gridSize; x++) {
+    process.stdout.write(`${rowStr[x]} |`);
+    for (let y = 0; y < gridSize; y++) {
       let cell = grid[x][y];
       switch (cell) {
         case 'S':
-          cell = '   '
+          cell = '   ';
           break;
         case 'O':
         case 'X':
-          cell = ` ${cell} `
+          cell = ` ${cell} `;
           break;
         default:
-          cell  += '   '
+          cell += '   ';
           break;
       }
-      process.stdout.write(`${cell}|`)
+      process.stdout.write(`${cell}|`);
     }
-    gridBorders(); 
-    process.stdout.write('\n')
+    gridBorders();
+    process.stdout.write('\n');
   }
-}
+};
 
 const gridBorders = () => {
-  process.stdout.write('\n'); 
-  process.stdout.write('  -'); 
-  for (let i = 0 ; i < gridSize ; i++){
-    process.stdout.write('----')
+  process.stdout.write('\n');
+  process.stdout.write('  -');
+  for (let i = 0; i < gridSize; i++) {
+    process.stdout.write('----');
   }
+};
+
+//refactor this function so that the game can differentiate between player ship and enemy ship.
+
+const isShipHit = (x, y, ship) => {
+  return (
+    (ship.direction === 'horizontal' &&
+      x === ship.startX &&
+      y < ship.startY + ship.length) ||
+    (ship.direction === 'vertical' &&
+      y === ship.startY &&
+      x < ship.startX + ship.length)
+  );
+};
+const updateHitSection = (ship) => {
+  ship.hitSection += 1;
 }
 
-//refactor this function so that the game can differentiate between player ship and enemy ship. 
-const checkShip = (x,y, currentShips) => {
-  for(const ship of currentShips) {
-   if(
-    (ship.direction === 'horizontal' && x === ship.startX && y < ship.startY + ship.length) ||
-    (ship.direction === 'vertical' && y === ship.startY && x < ship.startX + ship.length)
-   ) {
-    ship.hitSections += 1
-    if (ship.hitSections === ship.length) {
-      ship.isSunk = true; 
-      console.log(`You sunk a ${ship.length}-unit ship !`)
-      sunkShips ++
+const isSunk = (ship) => {
+  return ship.hitSection === ship.length; 
+}
+
+const handleSunkShip = (ship) => {
+  ship.isSunk = true; 
+  console.log(`You sunk a ${ship.length}-unit ship!`);
+  sunkShip++; 
+}
+
+const checkShip = (x, y, ) => {
+  for (const ship of enemyShips) {
+    if (isShipHit(x,y,ship)){
+      updateHitSection(ship);
+      if(isSunk(ship)) {
+        handleSunkShip(ship); 
+      }
     }
-   }
   }
-}
+};
 
-
-//rename attack to checkAttack for readability 
-const checkAttack = (x,y) => {
-  if(grid[x][y] === 'S') {
-    console.log('Hit!')
-    grid[x][y] = 'X'
-    checkShip(x,y); 
+//rename attack to checkAttack for readability
+const checkAttack = (x, y) => {
+  if (grid[x][y] === 'S') {
+    console.log('Hit!');
+    grid[x][y] = 'X';
+    checkShip(x, y);
   } else {
-    console.log('Miss')
-    grid[x][y] = 'O'
+    console.log('Miss');
+    grid[x][y] = 'O';
   }
-}
+};
 
 const reset = () => {
-  grid = []; 
-  gridSize = ''; 
-  enemyShips = []; 
-  prevLocations = []; 
-  sunkShips = 0; 
-  gameSetup(); 
-  gameLoop(); 
-}
+  grid = [];
+  gridSize = '';
+  enemyShips = [];
+  prevLocations = [];
+  sunkShips = 0;
+  gameSetup();
+  gameLoop();
+};
+
+//Refactor gameSetUp() to follow SRP. 
+  
+
 
 const gameSetup = () => {
-  let minMax = (/^(?:[3-9]|10)$/)
-  let filteredShips; 
-  gridSize = rl.question('Enter desired grid Size: ', {limit:minMax, limitMessage: 'Grid must be larger than 3 and smaller than 10'})
-  createMap(gridSize); 
- 
+  let minMax = /^(?:[3-9]|10)$/;
+  let filteredShips;
+  gridSize = rl.question('Enter desired grid Size: ', {
+    limit: minMax,
+    limitMessage: 'Grid must be larger than 3 and smaller than 10',
+  });
+  createMap(gridSize);
+
   switch (gridSize) {
-    case '3': 
-      filteredShips = numShips.filter(ship => ship< 3)
-      break; 
-    case '4': 
-      filteredShips = [...new Set(numShips)].filter(ship => ship>= 2 && ship <= 3)
+    case '3':
+      filteredShips = numShips.filter((ship) => ship < 3);
       break;
-    case '5': 
-      filteredShips = [...new Set(numShips)].filter(ship => ship < 5)
-      break; 
+    case '4':
+      filteredShips = [...new Set(numShips)].filter(
+        (ship) => ship >= 2 && ship <= 3
+      );
+      break;
+    case '5':
+      filteredShips = [...new Set(numShips)].filter((ship) => ship < 5);
+      break;
     case '6':
-      filteredShips = [...new Set(numShips)]; 
+      filteredShips = [...new Set(numShips)];
       break;
-    default: 
-      filteredShips = numShips
-      break; 
+    default:
+      filteredShips = numShips;
+      break;
   }
 
-  filteredShips.forEach(ship => getPoints(ship)); 
-}
+  filteredShips.forEach((ship) => getPoints(ship));
+};
 
 /*
   During the game loop, we would need to refactor the code so that the players can take turns guessing the checking the guess. 
 */
 
 const gameLoop = () => {
-  do{ 
-    let playerGuess = rl.question('Enter a location to strike ie: "A1" : ', 
-    {limit:validPoints, limitMessage: 'Not a valid point on the map, please try again. '} );
-    
-    let guess = playerGuess.toUpperCase(); 
+  do {
+    let playerGuess = rl.question('Enter a location to strike ie: "A1" : ', {
+      limit: validPoints,
+      limitMessage: 'Not a valid point on the map, please try again. ',
+    });
+
+    let guess = playerGuess.toUpperCase();
 
     if (prevLocations.includes(guess)) {
-      console.log('You have already picked this location. Miss!')
+      console.log('You have already picked this location. Miss!');
     } else {
-      prevLocations.push(guess); 
+      prevLocations.push(guess);
 
-      let x = rowStr.indexOf(guess.slice(0,1)); 
-      let y = guess.slice(1) -1; 
+      let x = rowStr.indexOf(guess.slice(0, 1));
+      let y = guess.slice(1) - 1;
 
-      checkAttack(x,y);
+      checkAttack(x, y);
       printGrid();
 
-      console.log('\n')
+      console.log('\n');
 
       if (sunkShips === enemyShips.length) {
-        console.log('You sunk all the ships!'); 
-        if(rl.keyInYNStrict('Would you like to play again? : ')) {
-          reset(); 
+        console.log('You sunk all the ships!');
+        if (rl.keyInYNStrict('Would you like to play again? : ')) {
+          reset();
         } else {
-          console.log('Thank you for playing.')
+          console.log('Thank you for playing.');
         }
       }
     }
-  } while(sunkShips < enemyShips.length)
-}
+  } while (sunkShips < enemyShips.length);
+};
 
 const gameInit = () => {
   console.log('===| Welcome to Battle ship! |===');
   console.log('You can choose between 3-10 grid sizes');
-  console.log('smaller grids will have fewer ships and larger grids will have 5 total ships');
-  console.log('====| Happy Hunting! |===')
-  rl.keyInYNStrict('Would you like to begin? : ') 
-    ? (gameSetup(), gameLoop())  
-    : console.log('Have a nice day =)')
-}
+  console.log(
+    'smaller grids will have fewer ships and larger grids will have 5 total ships'
+  );
+  console.log('====| Happy Hunting! |===');
+  rl.keyInYNStrict('Would you like to begin? : ')
+    ? (gameSetup(), gameLoop())
+    : console.log('Have a nice day =)');
+};
 
-gameInit(); 
+gameInit();
 
 /*
   Game set-up logic: 
@@ -258,12 +314,12 @@ gameInit();
     - computer ends it's turn. 
   - 
   - game will print player's board and enemy's board accordingly showing accumulated guesses and ends the round
-*/  
+*/
 
 // Create a turn function where  each player and computer will make a guess and game can check the guesses made
 // Create a round functions where the turn turns will take place (after each round iterations, the game should notify the player what the current round is.)
 
-// what do I need to add to this to make it "multi-player"? 
+// what do I need to add to this to make it "multi-player"?
 /*
   create trackers for each player and computer opp
     - grid
@@ -272,5 +328,5 @@ gameInit();
 */
 
 // create 2 grids: an enemy grid and your own grid.
-// you can create the size of the grid for both you and your opponent.  
-// ships for both will have randomly selected ships. 
+// you can create the size of the grid for both you and your opponent.
+// ships for both will have randomly selected ships.
