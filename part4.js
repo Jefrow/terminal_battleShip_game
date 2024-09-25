@@ -34,7 +34,7 @@ const getRandomCoordinates = () => {
   return { x, y, direction };
 };
 
-const placeShips = (x, y, direction, length) => {
+const placeShips = (x, y, direction, length, grid) => {
   for (let i = 0; i < length; i++) {
     if (direction === 'horizontal') {
       grid[x][y + i] = 'S';
@@ -44,7 +44,7 @@ const placeShips = (x, y, direction, length) => {
   }
 };
 
-const makeShip = (x, y, direction, length) => {
+const makeShip = (x, y, direction, length, ships) => {
   const ship = {
     startX: x,
     startY: y,
@@ -54,21 +54,21 @@ const makeShip = (x, y, direction, length) => {
     isSunk: false,
   };
 
-  enemyShips.push(ship);
+  ships.push(ship);
 };
 
-const getPoints = (length) => {
+const getPoints = (length,grid, ships) => {
   let coordinates;
   do {
     coordinates = getRandomCoordinates();
   } while (
-    !isValid(coordinates.x, coordinates.y, coordinates.direction, length)
+    !isValid(coordinates.x, coordinates.y, coordinates.direction, length, grid)
   );
-  placeShips(coordinates.x, coordinates.y, coordinates.direction, length);
-  makeShip(coordinates.x, coordinates.y, coordinates.direction, length);
+  placeShips(coordinates.x, coordinates.y, coordinates.direction, length, grid);
+  makeShip(coordinates.x, coordinates.y, coordinates.direction, length, ships);
 };
 
-const isValid = (x, y, direction, length) => {
+const isValid = (x, y, direction, length, grid) => {
   if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) {
     return false;
   }
@@ -86,7 +86,7 @@ const isValid = (x, y, direction, length) => {
   return true;
 };
 
-const isHit = () => {
+const isHit = (grid) => {
   if (grid[x][y] === 'S') {
     return true;
   }
@@ -198,41 +198,45 @@ const reset = () => {
   gameSetup();
   gameLoop();
 };
-
 //Refactor gameSetUp() to follow SRP. 
-  
-
-
-const gameSetup = () => {
-  let minMax = /^(?:[3-9]|10)$/;
-  let filteredShips;
-  gridSize = rl.question('Enter desired grid Size: ', {
+const getGridSize = () => {
+  let minMax = new RegExp(/^(?:[3-9]|10)$/);
+  return rl.question('Enter desired grid Size: ', {
     limit: minMax,
     limitMessage: 'Grid must be larger than 3 and smaller than 10',
   });
-  createMap(gridSize);
+};
 
+const filterShips = (gridSize) => {
   switch (gridSize) {
     case '3':
-      filteredShips = numShips.filter((ship) => ship < 3);
-      break;
+      return numShips.filter((ship) => ship < 3);
     case '4':
-      filteredShips = [...new Set(numShips)].filter(
-        (ship) => ship >= 2 && ship <= 3
-      );
-      break;
+      return [...new Set(numShips)].filter((ship) => ship >= 2 && ship <= 3);
     case '5':
-      filteredShips = [...new Set(numShips)].filter((ship) => ship < 5);
-      break;
+      return [...new Set(numShips)].filter((ship) => ship < 5);
     case '6':
-      filteredShips = [...new Set(numShips)];
-      break;
+      return [...new Set(numShips)];
     default:
-      filteredShips = numShips;
-      break;
+      return numShips;
   }
+};
 
-  filteredShips.forEach((ship) => getPoints(ship));
+/*
+  Refactor gameSetUp to for single player against the computer.   
+  create map for using my map and enemy map, 
+  filter Ships for both my ships and pc ships
+
+*/
+
+const gameSetup = () => {
+  gridSize = getGridSize();
+
+  createMap(gridSize, pcGrid);
+  createMap(gridSize, myGrid)
+
+  let filteredShips = filterShips(gridSize);
+  filteredShips.forEach((ship) => getPoints(ship, myGrid, ));
 };
 
 /*
@@ -317,7 +321,8 @@ gameInit();
     - game will check if any ship is sunk
     - game will keep track of any hits and valid guesses made. 
     - computer ends it's turn. 
-  - 
+  - at the end of of every round, game will evaluate for any sunk ships (player's and PC's) if either player 
+    has all ships sink, then the game will end and that player will lose. 
   - game will print player's board and enemy's board accordingly showing accumulated guesses and ends the round
 */
 
@@ -330,6 +335,8 @@ gameInit();
     - grid
     - ship locations
     - previous locations 
+    - sunk ships
+    - remaining ships
 */
 
 // create 2 grids: an enemy grid and your own grid.
