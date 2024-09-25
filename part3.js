@@ -94,37 +94,22 @@ const isHit = (x, y) => {
   return false;
 };
 
-const printGrid = (columnHeaders, rowStr) => {
-  process.stdout.write('   ');
-  for (let i = 0; i < gridSize; i++) {
-    process.stdout.write(` ${columnHeaders[i]}  `);
-  }
+const printGrid = (size, columnHead, rowHeader) => {
+  gridHeader(size, columnHead); 
   gridBorders();
 
-  process.stdout.write('\n');
-
-  for (let x = 0; x < gridSize; x++) {
-    process.stdout.write(`${rowStr[x]} |`);
-    for (let y = 0; y < gridSize; y++) {
-      let cell = grid[x][y];
-      switch (cell) {
-        case 'S':
-          cell = '   ';
-          break;
-        case 'O':
-        case 'X':
-          cell = ` ${cell} `;
-          break;
-        default:
-          cell += '   ';
-          break;
-      }
-      process.stdout.write(`${cell}|`);
-    }
+  for (let x = 0; x < size; x++) {
+    gridCell(size, rowHeader, x); 
     gridBorders();
-    process.stdout.write('\n');
   }
 };
+
+const gridHeader = (size, columnHead) => {
+  process.stdout.write('   ');
+  for (let i = 0; i < size; i++) {
+    process.stdout.write(` ${columnHead[i]}  `);
+  }
+}
 
 const gridBorders = () => {
   process.stdout.write('\n');
@@ -132,8 +117,28 @@ const gridBorders = () => {
   for (let i = 0; i < gridSize; i++) {
     process.stdout.write('----');
   }
+  process.stdout.write('\n')
 };
 
+const gridCell = (size, rowHeader, x) => {
+  process.stdout.write(`${rowHeader[x]} |`);
+  for (let y = 0; y < size; y++) {
+    let cell = grid[x][y];
+    switch (cell) {
+      case 'S':
+        cell = '   ';
+        break;
+      case 'O':
+      case 'X':
+        cell = ` ${cell} `;
+        break;
+      default:
+        cell += '   ';
+        break;
+    }
+    process.stdout.write(`${cell}|`);
+  }
+}
 /* 
   checkShip() doesn't follow SRP this function is processing a couple of things
     1.check if the coordinates hit a ship.
@@ -304,6 +309,7 @@ const promptReset = () => {
 };
 
 const gameLoop = () => {
+  printGrid(gridSize, columnHeaders, rowStr); 
   validPoints = initValidPoints(gridSize);
   do {
     let playerGuess = getPlayerGuess(validPoints);
@@ -315,7 +321,7 @@ const gameLoop = () => {
 
       handleGuessResult(x, y);
 
-      printGrid(columnHeaders, rowStr);
+      printGrid(gridSize, columnHeaders, rowStr);
 
       console.log('\n');
 

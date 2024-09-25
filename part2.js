@@ -208,7 +208,7 @@ const gameSetup = () => {
 
 const initValidPoint = (gridSize) => {
   const maxRow = String.fromCharCode('a'.charCodeAt(0) + (gridSize - 1));
-  const maxNumber = getMaxValue(gridSize);
+  const maxNumber = getMaxGridValue(gridSize);
 
   // console.log('maxRow:', maxRow);
   // console.log('maxRowUp:', maxRow.toUpperCase());
@@ -216,7 +216,7 @@ const initValidPoint = (gridSize) => {
   return new RegExp(`^[a-${maxRow}A-${maxRow.toUpperCase()}]${maxNumber}$`);
 };
 
-const getMaxValue = (gridSize) => {
+const getMaxGridValue = (gridSize) => {
   if (Number(gridSize) === 10) {
     return '(10|[1-9])';
   } else {
